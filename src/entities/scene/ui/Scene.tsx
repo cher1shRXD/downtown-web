@@ -10,16 +10,16 @@ const Scene = () => {
 
   // Refs for camera and interaction state must be at the top level
   const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
-  const targetZoom = useRef(1);
+  const targetZoom = useRef(3);
   const isDragging = useRef(false);
   const previousMousePosition = useRef({ x: 0, y: 0 });
+  const pinchDistance = useRef(0);
+  const initialPinchZoom = useRef(1);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
     const currentMount = mountRef.current;
-    const width = currentMount.clientWidth;
-    const height = currentMount.clientHeight;
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -32,12 +32,10 @@ const Scene = () => {
     const distance = 400;
     camera.position.set(120, distance * Math.sin(angle), distance * Math.cos(angle));
     camera.lookAt(cameraTarget.current);
-    targetZoom.current = camera.zoom;
 
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -45,7 +43,7 @@ const Scene = () => {
 
     // Lighting
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(100, 150, -100);
+    directionalLight.position.set(-100, 150, 100);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -88,7 +86,7 @@ const Scene = () => {
       [0,0,5,5,5,5,5,0,0,2,2,2,0,0,1,1,1,0,2,2,2,0,0,5,5,5,5,0,0,0],
       [0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5,0,0,0],
     ];
-    const materials = { water: new THREE.MeshLambertMaterial({ color: 0x2196f3 }), ground: new THREE.MeshLambertMaterial({ color: 0x967969 }) };
+    const materials = { water: new THREE.MeshLambertMaterial({ color: 0x2196f3 }), ground: new THREE.MeshLambertMaterial({ color: 0x367F43 }) };
     const groundThickness = 300;
     const groundGeometry = new THREE.BoxGeometry(mapWidth * tileSize, groundThickness, mapHeight * tileSize);
     const ground = new THREE.Mesh(groundGeometry, materials.ground);
@@ -104,11 +102,10 @@ const Scene = () => {
                 let model: THREE.Group | null = null;
                 switch (tileType) {
                     case 0: break;
-                    case 1: if (models.book1) { model = models.book1.clone(); model.scale.set(2, 7, 2.7); model.rotation.set(-300, 50, -10); position.y = 5; } break;
-                    case 2: if (models.book3) { model = models.book3.clone(); model.scale.set(15, 15, 15); position.y = 0; model.userData = { id: `building_${x}_${z}`, type: 'building' }; buildings.push(model); } break;
-                    case 4: if (models.book4) { model = models.book4.clone(); model.scale.set(5, 10, 5); position.y = 3; } break;
-                    case 5: if (models.bookMany) { model = models.bookMany.clone(); model.scale.set(30, 30, 30); model.rotation.y = Math.random() * Math.PI; position.y = 0; } break;
-                    case 3: const waterGeometry = new THREE.BoxGeometry(tileSize, 0.2, tileSize); const waterTile = new THREE.Mesh(waterGeometry, materials.water); waterTile.position.set(position.x, 0.1, position.z); scene.add(waterTile); break;
+                    case 1: if (models.book1) { model = models.book1.clone(); model.scale.set(3, 5, 3); model.rotation.set(-300, 50, -10); position.y = 5; } break;
+                    case 2: if (models.book3) { model = models.book3.clone(); model.scale.set(15, 15, 15); position.y = 1.2; } break;
+                    case 4: if (models.book4) { model = models.book4.clone(); model.scale.set(7, 10, 7); position.y = 3; } break;
+                    case 5: if (models.bookMany) { model = models.bookMany.clone(); model.scale.set(40, 40, 40); model.rotation.y = Math.random() * Math.PI; position.y = 0; } break;
                 }
                 if (model) { model.position.copy(position); model.traverse(child => { if (child instanceof THREE.Mesh) { child.castShadow = true; child.receiveShadow = true; } }); scene.add(model); }
             }
@@ -137,14 +134,15 @@ const Scene = () => {
     };
 
     const onMouseMove = (event: MouseEvent) => {
-        if (!isDragging.current) return;
+        if (!isDragging.current || !mountRef.current) return;
+        const { clientWidth, clientHeight } = mountRef.current;
 
         const deltaX = event.clientX - previousMousePosition.current.x;
         const deltaY = event.clientY - previousMousePosition.current.y;
 
         const panSpeed = 1.5;
-        const moveX = -(deltaX / width) * (camera.right - camera.left) / camera.zoom * panSpeed;
-        const moveY = (deltaY / height) * (camera.top - camera.bottom) / camera.zoom * panSpeed;
+        const moveX = -(deltaX / clientWidth) * (camera.right - camera.left) / camera.zoom * panSpeed;
+        const moveY = (deltaY / clientHeight) * (camera.top - camera.bottom) / camera.zoom * panSpeed;
 
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
         const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
@@ -175,10 +173,62 @@ const Scene = () => {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const zoomSpeed = 0.02;
-      const minZoom = 0.5;
-      const maxZoom = 4;
+      const minZoom = 3;
+      const maxZoom = 10;
       let newZoom = targetZoom.current - event.deltaY * zoomSpeed;
       targetZoom.current = Math.max(minZoom, Math.min(newZoom, maxZoom));
+    };
+
+    const getTouchDistance = (touches: TouchList) => {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      event.preventDefault();
+      if (event.touches.length === 1) {
+        isDragging.current = true;
+        previousMousePosition.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+      } else if (event.touches.length === 2) {
+        isDragging.current = false;
+        pinchDistance.current = getTouchDistance(event.touches);
+        initialPinchZoom.current = camera.zoom;
+      }
+    };
+
+    const onTouchEnd = () => {
+      isDragging.current = false;
+      pinchDistance.current = 0;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      event.preventDefault();
+      if (!mountRef.current) return;
+
+      if (event.touches.length === 1 && isDragging.current) {
+        const { clientWidth, clientHeight } = mountRef.current;
+        const deltaX = event.touches[0].clientX - previousMousePosition.current.x;
+        const deltaY = event.touches[0].clientY - previousMousePosition.current.y;
+        const panSpeed = 1.5;
+        const moveX = -(deltaX / clientWidth) * (camera.right - camera.left) / camera.zoom * panSpeed;
+        const moveY = (deltaY / clientHeight) * (camera.top - camera.bottom) / camera.zoom * panSpeed;
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+        const moveVector = right.multiplyScalar(moveX).add(up.multiplyScalar(moveY));
+        camera.position.add(moveVector);
+        cameraTarget.current.add(moveVector);
+        previousMousePosition.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+      } else if (event.touches.length === 2) {
+        const newDist = getTouchDistance(event.touches);
+        if (pinchDistance.current > 0) {
+          const zoomFactor = newDist / pinchDistance.current;
+          const minZoom = 0.5;
+          const maxZoom = 4;
+          const newZoom = initialPinchZoom.current * zoomFactor;
+          targetZoom.current = Math.max(minZoom, Math.min(newZoom, maxZoom));
+        }
+      }
     };
 
     currentMount.addEventListener("mousedown", onMouseDown);
@@ -186,6 +236,24 @@ const Scene = () => {
     currentMount.addEventListener("mousemove", onMouseMove);
     currentMount.addEventListener("click", onClick);
     currentMount.addEventListener("wheel", onWheel, { passive: false });
+    currentMount.addEventListener("touchstart", onTouchStart, { passive: false });
+    currentMount.addEventListener("touchend", onTouchEnd);
+    currentMount.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    const handleResize = () => {
+      if (!mountRef.current) return;
+      const { clientWidth, clientHeight } = mountRef.current;
+      renderer.setSize(clientWidth, clientHeight);
+      const aspect = clientWidth / clientHeight;
+      camera.left = (-mapSize * aspect) / 2;
+      camera.right = (mapSize * aspect) / 2;
+      camera.top = mapSize / 2;
+      camera.bottom = -mapSize / 2;
+      camera.updateProjectionMatrix();
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
 
     // Animation Loop
     const animate = () => {
@@ -199,11 +267,15 @@ const Scene = () => {
 
     // Cleanup
     return () => {
+      window.removeEventListener("resize", handleResize);
       currentMount.removeEventListener("mousedown", onMouseDown);
       currentMount.removeEventListener("mouseup", onMouseUp);
       currentMount.removeEventListener("mousemove", onMouseMove);
       currentMount.removeEventListener("click", onClick);
       currentMount.removeEventListener("wheel", onWheel);
+      currentMount.removeEventListener("touchstart", onTouchStart);
+      currentMount.removeEventListener("touchend", onTouchEnd);
+      currentMount.removeEventListener("touchmove", onTouchMove);
       if (renderer.domElement.parentElement) {
         currentMount.removeChild(renderer.domElement);
       }
