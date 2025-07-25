@@ -10,7 +10,7 @@ const Scene = () => {
 
   // Refs for camera and interaction state must be at the top level
   const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
-  const targetZoom = useRef(3);
+  const targetZoom = useRef(2);
   const isDragging = useRef(false);
   const previousMousePosition = useRef({ x: 0, y: 0 });
   const pinchDistance = useRef(0);
@@ -104,8 +104,8 @@ const Scene = () => {
                     case 0: break;
                     case 1: if (models.book1) { model = models.book1.clone(); model.scale.set(3, 5, 3); model.rotation.set(-300, 50, -10); position.y = 5; } break;
                     case 2: if (models.book3) { model = models.book3.clone(); model.scale.set(15, 15, 15); position.y = 1.2; } break;
-                    case 4: if (models.book4) { model = models.book4.clone(); model.scale.set(7, 10, 7); position.y = 3; } break;
-                    case 5: if (models.bookMany) { model = models.bookMany.clone(); model.scale.set(40, 40, 40); model.rotation.y = Math.random() * Math.PI; position.y = 0; } break;
+                    case 3: if (models.book4) { model = models.book4.clone(); model.scale.set(7, 10, 7); position.y = 3; } break;
+                    case 4: if (models.bookMany) { model = models.bookMany.clone(); model.scale.set(40, 40, 40); model.rotation.y = Math.random() * Math.PI; position.y = 0; } break;
                 }
                 if (model) { model.position.copy(position); model.traverse(child => { if (child instanceof THREE.Mesh) { child.castShadow = true; child.receiveShadow = true; } }); scene.add(model); }
             }
@@ -173,7 +173,7 @@ const Scene = () => {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const zoomSpeed = 0.02;
-      const minZoom = 3;
+      const minZoom = 1;
       const maxZoom = 10;
       let newZoom = targetZoom.current - event.deltaY * zoomSpeed;
       targetZoom.current = Math.max(minZoom, Math.min(newZoom, maxZoom));
