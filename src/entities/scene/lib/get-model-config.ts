@@ -1,19 +1,13 @@
 export const getModelConfig = (tileType: number) => {
   switch (tileType) {
-    case 1:
-      return {
-        modelKey: 'book1',
-        scale: { x: 3, y: 5, z: 3 },
-        rotation: { x: -300, y: 50, z: -10 },
-        positionY: 5
-      };
     case 2:
       return {
-        modelKey: 'book3',
-        scale: { x: 15, y: 15, z: 15 },
-        rotation: { x: 0, y: 0, z: 0 },
-        positionY: 1.2
-      };
+        modelKey: 'house',
+        scale: { x: 20, y: 20, z: 20 },
+        rotation: { x: 0, y: Math.PI, z: 0 },
+        positionY: 0
+      }
+      
     case 3:
       return {
         modelKey: 'book4',
@@ -28,13 +22,13 @@ export const getModelConfig = (tileType: number) => {
         rotation: { x: 0, y: Math.random() * Math.PI, z: 0 },
         positionY: 0
       };
-    case 7:
+    case 5:
       return {
-        modelKey: 'house',
-        scale: { x: 20, y: 20, z: 20 },
-        rotation: { x: 0, y: Math.PI, z: 0 },
-        positionY: 0
-      }
+        modelKey: 'book3',
+        scale: { x: 15, y: 15, z: 15 },
+        rotation: { x: 0, y: 0, z: 0 },
+        positionY: 1.2
+      };
     default:
       return null;
   }

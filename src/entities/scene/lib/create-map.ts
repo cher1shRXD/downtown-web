@@ -13,7 +13,7 @@ export const createMap = (models: LoadedModels, mapGroup: THREE.Group): void => 
     for (let z = 0; z < HEIGHT; z++) {
       const tileType = MAP_DATA[z][x];
 
-      if (tileType === 6) {
+      if (tileType === 1) {
         const roadMesh = new THREE.Mesh(roadGeometry, roadMaterial);
         roadMesh.position.set(
           (x - WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2,
