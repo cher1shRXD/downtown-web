@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ZOOM_CONFIG, INTERACTION_CONFIG } from '../constants';
+import { ZOOM_CONFIG } from "../constants";
 import { CameraRefs } from "../types/camera-refs";
 import { InteractionState } from "../types/interaction-state";
 
@@ -17,12 +17,12 @@ export const createTouchHandlers = (
 
   const onTouchStart = (event: TouchEvent) => {
     event.preventDefault();
-    
+
     if (event.touches.length === 1) {
       interactionState.isDragging.current = true;
-      interactionState.previousMousePosition.current = { 
-        x: event.touches[0].clientX, 
-        y: event.touches[0].clientY 
+      interactionState.previousMousePosition.current = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY,
       };
     } else if (event.touches.length === 2) {
       interactionState.isDragging.current = false;
@@ -38,33 +38,76 @@ export const createTouchHandlers = (
 
   const onTouchMove = (event: TouchEvent) => {
     event.preventDefault();
-    
+
     if (event.touches.length === 1 && interactionState.isDragging.current) {
-      const { clientWidth, clientHeight } = container;
-      const deltaX = event.touches[0].clientX - interactionState.previousMousePosition.current.x;
-      const deltaY = event.touches[0].clientY - interactionState.previousMousePosition.current.y;
-      
-      const moveX = -(deltaX / clientWidth) * (camera.right - camera.left) / camera.zoom * INTERACTION_CONFIG.PAN_SPEED;
-      const moveY = (deltaY / clientHeight) * (camera.top - camera.bottom) / camera.zoom * INTERACTION_CONFIG.PAN_SPEED;
-      
-      const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
-      const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
-      const moveVector = right.multiplyScalar(moveX).add(up.multiplyScalar(moveY));
-      
-      camera.position.add(moveVector);
-      cameraRefs.target.current.add(moveVector);
-      
-      interactionState.previousMousePosition.current = { 
-        x: event.touches[0].clientX, 
-        y: event.touches[0].clientY 
+      const { clientWidth } = container;
+      const deltaX =
+        event.touches[0].clientX -
+        interactionState.previousMousePosition.current.x;
+
+      const rotationSpeed = 2;
+      const rotationAngle = -(deltaX / clientWidth) * Math.PI * rotationSpeed;
+
+      const rotationAxis = new THREE.Vector3(0, 1, 0);
+
+      const cameraOffset = new THREE.Vector3().subVectors(
+        camera.position,
+        cameraRefs.target.current
+      );
+      cameraOffset.applyAxisAngle(rotationAxis, rotationAngle);
+
+      camera.position.copy(cameraRefs.target.current).add(cameraOffset);
+      camera.lookAt(cameraRefs.target.current);
+
+      interactionState.previousMousePosition.current = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY,
       };
     } else if (event.touches.length === 2) {
       const newDist = getTouchDistance(event.touches);
-      
+
       if (interactionState.pinchDistance.current > 0) {
         const zoomFactor = newDist / interactionState.pinchDistance.current;
         const newZoom = interactionState.initialPinchZoom.current * zoomFactor;
-        cameraRefs.targetZoom.current = Math.max(ZOOM_CONFIG.TOUCH_MIN, Math.min(newZoom, ZOOM_CONFIG.TOUCH_MAX));
+        const clampedZoom = Math.max(
+          ZOOM_CONFIG.TOUCH_MIN,
+          Math.min(newZoom, ZOOM_CONFIG.TOUCH_MAX)
+        );
+
+        // 👉 줌 중심 계산
+        const rect = container.getBoundingClientRect();
+        const touchMidX =
+          (event.touches[0].clientX + event.touches[1].clientX) / 2;
+        const touchMidY =
+          (event.touches[0].clientY + event.touches[1].clientY) / 2;
+
+        const ndc = new THREE.Vector2(
+          ((touchMidX - rect.left) / rect.width) * 2 - 1,
+          -((touchMidY - rect.top) / rect.height) * 2 + 1
+        );
+
+        // 👉 줌 전 기준 지점 world 좌표
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(ndc, camera);
+        const worldBefore = new THREE.Vector3();
+        raycaster.ray.at(1, worldBefore);
+
+        // 줌 적용
+        camera.zoom = clampedZoom;
+        camera.updateProjectionMatrix();
+        cameraRefs.targetZoom.current = clampedZoom;
+
+        // 👉 줌 후 기준 지점 world 좌표
+        raycaster.setFromCamera(ndc, camera);
+        const worldAfter = new THREE.Vector3();
+        raycaster.ray.at(1, worldAfter);
+
+        // 👉 그 차이만큼 카메라 & 타겟을 같이 보정
+        const offset = new THREE.Vector3().subVectors(worldBefore, worldAfter);
+        camera.position.add(offset);
+        cameraRefs.target.current.add(offset);
+
+        camera.lookAt(cameraRefs.target.current);
       }
     }
   };
