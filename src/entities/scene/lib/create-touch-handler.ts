@@ -81,7 +81,7 @@ export const createTouchHandlers = (
           Math.min(newZoom, ZOOM_CONFIG.TOUCH_MAX)
         );
 
-        // Zooming in (newDist > interactionState.pinchDistance.current)
+      
         if (newDist > interactionState.pinchDistance.current) {
           const rect = container.getBoundingClientRect();
           const touchMidX =
@@ -110,7 +110,7 @@ export const createTouchHandlers = (
 
           accumulatedOffset.add(offset);
           accumulatedTargetOffset.add(offset);
-        } else { // Zooming out
+        } else {
           camera.zoom = clampedZoom;
           camera.updateProjectionMatrix();
           cameraRefs.targetZoom.current = clampedZoom;
@@ -119,7 +119,7 @@ export const createTouchHandlers = (
           const currentZoomNormalized = (clampedZoom - ZOOM_CONFIG.TOUCH_MIN) / zoomRange;
           const interpolationFactor = 1 - currentZoomNormalized;
 
-          const lerpAlpha = 0.1; // Adjust for desired smoothness
+          const lerpAlpha = 0.1;
 
           camera.position.lerp(initialCameraPosition, lerpAlpha * interpolationFactor);
           cameraRefs.target.current.lerp(initialTarget, lerpAlpha * interpolationFactor);

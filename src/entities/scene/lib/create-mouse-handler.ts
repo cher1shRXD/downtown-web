@@ -15,8 +15,6 @@ export const createMouseHandlers = (
 ) => {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
-  const worldBefore = new THREE.Vector3();
-  const worldAfter = new THREE.Vector3();
   const offset = new THREE.Vector3();
 
   const initialCameraPosition = new THREE.Vector3(
@@ -26,7 +24,6 @@ export const createMouseHandlers = (
   );
   const initialTarget = new THREE.Vector3(0, 0, 0);
 
-  // 확대 시 누적된 오프셋을 추적
   let accumulatedOffset = new THREE.Vector3(0, 0, 0);
   let accumulatedTargetOffset = new THREE.Vector3(0, 0, 0);
 
