@@ -3,7 +3,7 @@ import { LoadedModels } from "../types/loaded-models";
 import { getModelConfig } from "./get-model-config";
 import * as THREE from 'three';
 
-export const createMap = (models: LoadedModels, scene: THREE.Scene): void => {
+export const createMap = (models: LoadedModels, mapGroup: THREE.Group): void => {
   const { TILE_SIZE, WIDTH, HEIGHT } = MAP_CONFIG;
 
   for (let x = 0; x < WIDTH; x++) {
@@ -21,7 +21,7 @@ export const createMap = (models: LoadedModels, scene: THREE.Scene): void => {
           (z - HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2
         );
         roadMesh.receiveShadow = true;
-        scene.add(roadMesh);
+        mapGroup.add(roadMesh);
         continue;
       }
 
@@ -46,7 +46,7 @@ export const createMap = (models: LoadedModels, scene: THREE.Scene): void => {
         }
       });
 
-      scene.add(model);
+      mapGroup.add(model);
     }
   }
 };

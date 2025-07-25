@@ -37,17 +37,20 @@ export const useThreeScene = (
     const buildings: THREE.Object3D[] = [];
 
     const scene = createScene();
+    const mapGroup = new THREE.Group();
+    scene.add(mapGroup);
     const camera = createCamera(cameraRefs);
     const renderer = createRenderer(currentMount);
     
     setupLighting(scene);
-    createGround(scene);
+    const ground = createGround();
+    mapGroup.add(ground);
 
     const mouseHandlers = createMouseHandlers(
-      camera, cameraRefs, interactionState, currentMount, buildings, setPopup
+      camera, cameraRefs, interactionState, currentMount, buildings, mapGroup, setPopup
     );
     const touchHandlers = createTouchHandlers(
-      camera, cameraRefs, interactionState, currentMount
+      camera, cameraRefs, interactionState, currentMount, mapGroup
     );
 
     const handleResize = () => {
@@ -83,7 +86,7 @@ export const useThreeScene = (
     handleResize();
     animate();
 
-    loadAllModels().then(models => createMap(models, scene));
+    loadAllModels().then(models => createMap(models, mapGroup));
 
     return () => {
       window.removeEventListener("resize", handleResize);

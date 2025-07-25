@@ -1,8 +1,8 @@
-import * as THREE from 'three';
-import { ZOOM_CONFIG, INTERACTION_CONFIG } from '../constants';
-import { CameraRefs } from '../types/camera-refs';
-import { InteractionState } from '../types/interaction-state';
-import { PopupData } from '../types/popup-data';
+import * as THREE from "three";
+import { ZOOM_CONFIG, CAMERA_CONFIG } from "../constants";
+import { CameraRefs } from "../types/camera-refs";
+import { InteractionState } from "../types/interaction-state";
+import { PopupData } from "../types/popup-data";
 
 export const createMouseHandlers = (
   camera: THREE.OrthographicCamera,
@@ -10,10 +10,22 @@ export const createMouseHandlers = (
   interactionState: InteractionState,
   container: HTMLDivElement,
   buildings: THREE.Object3D[],
-  setPopup: (popup: PopupData | null) => void,
+  mapGroup: THREE.Group,
+  setPopup: (popup: PopupData | null) => void
 ) => {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+
+  const initialCameraPosition = new THREE.Vector3(
+    CAMERA_CONFIG.INITIAL_POSITION.x,
+    CAMERA_CONFIG.DISTANCE * Math.sin(CAMERA_CONFIG.ANGLE),
+    CAMERA_CONFIG.DISTANCE * Math.cos(CAMERA_CONFIG.ANGLE)
+  );
+  const initialTarget = new THREE.Vector3(0, 0, 0);
+
+  // 확대 시 누적된 오프셋을 추적
+  let accumulatedOffset = new THREE.Vector3(0, 0, 0);
+  let accumulatedTargetOffset = new THREE.Vector3(0, 0, 0);
 
   const onMouseDown = (event: MouseEvent) => {
     interactionState.isDragging.current = true;
@@ -38,15 +50,7 @@ export const createMouseHandlers = (
     const rotationAngle = -(deltaX / clientWidth) * Math.PI * rotationSpeed;
 
     const rotationAxis = new THREE.Vector3(0, 1, 0);
-
-    const cameraOffset = new THREE.Vector3().subVectors(
-      camera.position,
-      cameraRefs.target.current,
-    );
-    cameraOffset.applyAxisAngle(rotationAxis, rotationAngle);
-
-    camera.position.copy(cameraRefs.target.current).add(cameraOffset);
-    camera.lookAt(cameraRefs.target.current);
+    mapGroup.rotateOnAxis(rotationAxis, rotationAngle);
 
     interactionState.previousMousePosition.current = {
       x: event.clientX,
@@ -75,7 +79,7 @@ export const createMouseHandlers = (
         ? intersected.userData
         : intersected.parent?.userData;
 
-      if (userData?.type === 'building') {
+      if (userData?.type === "building") {
         setPopup({
           x: event.clientX,
           y: event.clientY,
@@ -86,40 +90,77 @@ export const createMouseHandlers = (
   };
 
   const onWheel = (event: WheelEvent) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  const rect = container.getBoundingClientRect();
-  const ndc = new THREE.Vector2(
-    ((event.clientX - rect.left) / rect.width) * 2 - 1,
-    -((event.clientY - rect.top) / rect.height) * 2 + 1
-  );
+    const newZoom =
+      cameraRefs.targetZoom.current - event.deltaY * ZOOM_CONFIG.SPEED;
+    const clampedZoom = Math.max(
+      ZOOM_CONFIG.MIN,
+      Math.min(newZoom, ZOOM_CONFIG.MAX)
+    );
 
-  // NDC를 world position으로 변환
-  const worldBefore = new THREE.Vector3();
-  raycaster.setFromCamera(ndc, camera);
-  raycaster.ray.at(1, worldBefore); // 카메라 평면상에서 1 unit 앞의 위치
+    // Zooming in (deltaY < 0)
+    if (event.deltaY < 0) {
+      const rect = container.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
 
-  // 줌 업데이트
-  const newZoom =
-    cameraRefs.targetZoom.current - event.deltaY * ZOOM_CONFIG.SPEED;
-  const clampedZoom = Math.max(ZOOM_CONFIG.MIN, Math.min(newZoom, ZOOM_CONFIG.MAX));
+      const worldBefore = new THREE.Vector3();
+      raycaster.setFromCamera(ndc, camera);
+      raycaster.ray.at(1, worldBefore);
 
-  cameraRefs.targetZoom.current = clampedZoom;
-  camera.zoom = clampedZoom;
-  camera.updateProjectionMatrix();
+      cameraRefs.targetZoom.current = clampedZoom;
+      camera.zoom = clampedZoom;
+      camera.updateProjectionMatrix();
 
-  // 줌 이후의 world 위치
-  const worldAfter = new THREE.Vector3();
-  raycaster.setFromCamera(ndc, camera);
-  raycaster.ray.at(1, worldAfter);
+      const worldAfter = new THREE.Vector3();
+      raycaster.setFromCamera(ndc, camera);
+      raycaster.ray.at(1, worldAfter);
 
-  // 카메라를 반대 방향으로 이동시켜 마우스 위치를 고정
-  const offset = new THREE.Vector3().subVectors(worldBefore, worldAfter);
-  camera.position.add(offset);
-  cameraRefs.target.current.add(offset); // lookAt 위치도 같이 이동
+      const offset = new THREE.Vector3().subVectors(worldBefore, worldAfter);
+      
+      // 카메라와 타겟 모두 이동
+      camera.position.add(offset);
+      cameraRefs.target.current.add(offset);
+      
+      // 누적 오프셋에 추가
+      accumulatedOffset.add(offset);
+      accumulatedTargetOffset.add(offset);
+      
+    } else { // Zooming out - 점진적으로 원상복구
+      cameraRefs.targetZoom.current = clampedZoom;
+      camera.zoom = clampedZoom;
+      camera.updateProjectionMatrix();
 
-  camera.lookAt(cameraRefs.target.current);
-};
+      // Calculate interpolation factor based on how far from min zoom
+      // When clampedZoom is MAX, factor is 0 (no interpolation)
+      // When clampedZoom is MIN, factor is 1 (fully interpolated)
+      const zoomRange = ZOOM_CONFIG.MAX - ZOOM_CONFIG.MIN;
+      const currentZoomNormalized = (clampedZoom - ZOOM_CONFIG.MIN) / zoomRange;
+      const interpolationFactor = 1 - currentZoomNormalized; // 0 when fully zoomed in, 1 when fully zoomed out
+
+      // Smoothly interpolate camera position and target towards initial state
+      // Use a small, constant lerp alpha for smoothness over multiple wheel events
+      const lerpAlpha = 0.1; // Adjust for desired smoothness
+
+      camera.position.lerp(initialCameraPosition, lerpAlpha * interpolationFactor);
+      cameraRefs.target.current.lerp(initialTarget, lerpAlpha * interpolationFactor);
+
+      // If we are at or below the minimum zoom, snap to initial state to ensure precision
+      if (clampedZoom <= ZOOM_CONFIG.MIN) {
+        camera.position.copy(initialCameraPosition);
+        cameraRefs.target.current.copy(initialTarget);
+        // Reset accumulated offsets if they were used for zoom-in
+        // This ensures that next zoom-in starts from a clean state relative to initial
+        accumulatedOffset.set(0, 0, 0);
+        accumulatedTargetOffset.set(0, 0, 0);
+      }
+    }
+
+    camera.lookAt(cameraRefs.target.current);
+  };
 
   return { onMouseDown, onMouseUp, onMouseMove, onClick, onWheel };
 };

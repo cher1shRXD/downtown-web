@@ -17,7 +17,7 @@ export const ZOOM_CONFIG = {
   SPEED: 0.02,
   MIN: 1,
   MAX: 10,
-  TOUCH_MIN: 0.3,
+  TOUCH_MIN: 0.8,
   TOUCH_MAX: 10,
 } as const;
 
