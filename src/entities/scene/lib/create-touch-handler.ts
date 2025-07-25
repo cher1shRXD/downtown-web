@@ -19,6 +19,12 @@ export const createTouchHandlers = (
 
   let accumulatedOffset = new THREE.Vector3(0, 0, 0);
   let accumulatedTargetOffset = new THREE.Vector3(0, 0, 0);
+
+  const raycaster = new THREE.Raycaster();
+  const worldBefore = new THREE.Vector3();
+  const worldAfter = new THREE.Vector3();
+  const offset = new THREE.Vector3();
+
   const getTouchDistance = (touches: TouchList) => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -88,20 +94,17 @@ export const createTouchHandlers = (
             -((touchMidY - rect.top) / rect.height) * 2 + 1
           );
 
-          const raycaster = new THREE.Raycaster();
           raycaster.setFromCamera(ndc, camera);
-          const worldBefore = new THREE.Vector3();
-          raycaster.ray.at(1, worldBefore);
+          worldBefore.copy(raycaster.ray.at(1, worldBefore));
 
           camera.zoom = clampedZoom;
           camera.updateProjectionMatrix();
           cameraRefs.targetZoom.current = clampedZoom;
 
           raycaster.setFromCamera(ndc, camera);
-          const worldAfter = new THREE.Vector3();
-          raycaster.ray.at(1, worldAfter);
+          worldAfter.copy(raycaster.ray.at(1, worldAfter));
 
-          const offset = new THREE.Vector3().subVectors(worldBefore, worldAfter);
+          offset.subVectors(worldBefore, worldAfter);
           camera.position.add(offset);
           cameraRefs.target.current.add(offset);
 

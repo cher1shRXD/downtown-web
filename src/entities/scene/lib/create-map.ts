@@ -6,14 +6,14 @@ import * as THREE from 'three';
 export const createMap = (models: LoadedModels, mapGroup: THREE.Group): void => {
   const { TILE_SIZE, WIDTH, HEIGHT } = MAP_CONFIG;
 
+  const roadGeometry = new THREE.BoxGeometry(TILE_SIZE, 2, TILE_SIZE);
+  const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
+
   for (let x = 0; x < WIDTH; x++) {
     for (let z = 0; z < HEIGHT; z++) {
       const tileType = MAP_DATA[z][x];
 
       if (tileType === 6) {
-      
-        const roadGeometry = new THREE.BoxGeometry(TILE_SIZE, 2, TILE_SIZE);
-        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
         const roadMesh = new THREE.Mesh(roadGeometry, roadMaterial);
         roadMesh.position.set(
           (x - WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2,

@@ -28,6 +28,13 @@ export const getModelConfig = (tileType: number) => {
         rotation: { x: 0, y: Math.random() * Math.PI, z: 0 },
         positionY: 0
       };
+    case 7:
+      return {
+        modelKey: 'house',
+        scale: { x: 20, y: 20, z: 20 },
+        rotation: { x: 0, y: Math.PI, z: 0 },
+        positionY: 0
+      }
     default:
       return null;
   }

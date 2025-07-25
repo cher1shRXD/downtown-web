@@ -15,6 +15,9 @@ export const createMouseHandlers = (
 ) => {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  const worldBefore = new THREE.Vector3();
+  const worldAfter = new THREE.Vector3();
+  const offset = new THREE.Vector3();
 
   const initialCameraPosition = new THREE.Vector3(
     CAMERA_CONFIG.INITIAL_POSITION.x,
@@ -119,7 +122,7 @@ export const createMouseHandlers = (
       raycaster.setFromCamera(ndc, camera);
       raycaster.ray.at(1, worldAfter);
 
-      const offset = new THREE.Vector3().subVectors(worldBefore, worldAfter);
+      offset.subVectors(worldBefore, worldAfter);
       
       // 카메라와 타겟 모두 이동
       camera.position.add(offset);

@@ -3,4 +3,5 @@ export interface ModelUrls {
   book3: string;
   book4: string;
   bookMany: string;
+  house: string;
 }

@@ -65,8 +65,9 @@ export const useThreeScene = (
       camera.updateProjectionMatrix();
     };
 
+    let animationFrameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
       camera.zoom += (cameraRefs.targetZoom.current - camera.zoom) * INTERACTION_CONFIG.ZOOM_SMOOTH;
       camera.updateProjectionMatrix();
       camera.lookAt(cameraRefs.target.current);
@@ -99,6 +100,25 @@ export const useThreeScene = (
       currentMount.removeEventListener("touchend", touchHandlers.onTouchEnd);
       currentMount.removeEventListener("touchmove", touchHandlers.onTouchMove);
       
+      // Dispose of Three.js objects to prevent memory leaks
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          if (object.geometry) {
+            object.geometry.dispose();
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach((material) => material.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        }
+      });
+
+      // Stop the animation loop
+      cancelAnimationFrame(animationFrameId);
+
       if (renderer.domElement.parentElement) {
         currentMount.removeChild(renderer.domElement);
       }
