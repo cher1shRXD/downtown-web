@@ -47,7 +47,7 @@ export const useThreeScene = (
     mapGroup.add(ground);
 
     const mouseHandlers = createMouseHandlers(
-      camera, cameraRefs, interactionState, currentMount, buildings, mapGroup, setPopup
+      camera, cameraRefs, interactionState, currentMount, buildings, mapGroup, scene, setPopup
     );
     const touchHandlers = createTouchHandlers(
       camera, cameraRefs, interactionState, currentMount, mapGroup

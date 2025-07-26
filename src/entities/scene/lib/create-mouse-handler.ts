@@ -11,6 +11,7 @@ export const createMouseHandlers = (
   container: HTMLDivElement,
   buildings: THREE.Object3D[],
   mapGroup: THREE.Group,
+  scene: THREE.Scene,
   setPopup: (popup: PopupData | null) => void
 ) => {
   const raycaster = new THREE.Raycaster();
@@ -59,19 +60,24 @@ export const createMouseHandlers = (
   };
 
   const onClick = (event: MouseEvent) => {
+    console.log("클릭됨");
     if (
       interactionState.isDragging.current &&
       (event.clientX !== interactionState.previousMousePosition.current.x ||
         event.clientY !== interactionState.previousMousePosition.current.y)
     )
       return;
+    
+    console.log("if문 통과");
 
     const rect = container.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(buildings, true);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    console.log("intersects", intersects);
+
 
     if (intersects.length > 0) {
       const intersected = intersects[0].object as THREE.Mesh;

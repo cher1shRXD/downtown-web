@@ -34,6 +34,7 @@ export const createMap = (
       if (!config || !models[config.modelKey]) continue;
 
       const model = models[config.modelKey].clone();
+      model.name = `${config.modelKey}`
       const position = new THREE.Vector3(
         (x - WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2,
         config.positionY,
