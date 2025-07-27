@@ -5,7 +5,7 @@ import { PopupData } from "../types/popup-data";
 import { useThreeScene } from "../model/useThreeScene";
 import Popup from "./Popup";
 
-const Scene: React.FC = () => {
+const Scene = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [popup, setPopup] = useState<PopupData | null>(null);
 
@@ -16,12 +16,12 @@ const Scene: React.FC = () => {
   };
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-      <div ref={mountRef} style={{ width: "100%", height: "100%" }} />
+    <>
+      <div ref={mountRef} style={{ flex: 1, height: "100%" }} />
       {popup && (
         <Popup popup={popup} onClose={handleClosePopup} />
       )}
-    </div>
+    </>
   );
 };
 
