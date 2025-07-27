@@ -26,7 +26,7 @@ const TripInfo = ({
   lon,
 }: Props) => {
   return (
-    <div className="w-full h-full right-0 p-8">
+    <div className="w-full right-0 p-8">
       <TripTags tags={tags} />
       <div className="w-full flex flex-col gap-2">
         <TripDetails date={date} peopleCount={peopleCount} />
