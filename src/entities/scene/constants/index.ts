@@ -15,9 +15,9 @@ export const CAMERA_CONFIG = {
 
 export const ZOOM_CONFIG = {
   SPEED: 0.02,
-  MIN: 0.8,
+  MIN: 0.5,
   MAX: 10,
-  TOUCH_MIN: 0.8,
+  TOUCH_MIN: 0.5,
   TOUCH_MAX: 10,
 } as const;
 

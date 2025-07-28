@@ -1,11 +1,14 @@
 import Scene from "@/entities/scene/ui/Scene";
 import Photos from "@/widgets/photos/ui/Photos";
 import TripInfo from "@/widgets/trip-info/ui/TripInfo";
+import Image from "next/image";
 
 const Main = async () => {
   return (
     <div className="w-screen h-screen flex">
-      <div className="w-80 h-full z-10 bg-white"></div>
+      <div className="w-90 h-full z-10 bg-white p-4">
+        <img src="/images/logo.svg" alt="downtown" className="h-16" />
+      </div>
 
       <Scene />
       <div className="w-120 h-full bg-white flex flex-col">

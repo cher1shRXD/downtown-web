@@ -2,59 +2,65 @@
 
 import { MediaType } from "../types/media-type";
 import { PhotoItem } from "../types/photo-item";
-import { usePhotoGrid } from "../model/usePhotoGrid";
+import Masonry from "react-masonry-css";
 
 interface Props {
   items: PhotoItem[];
   mediaType: MediaType;
-  onLoadMore: () => void;
+  loadMoreRef: (node?: Element | null) => void;
+  isLoading?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
-const PhotoGrid = ({ items, mediaType, onLoadMore }: Props) => {
-  const { columns, containerRef, sentinelRef } = usePhotoGrid(
-    items,
-    mediaType,
-    onLoadMore
-  );
+const PhotoGrid = ({ items, mediaType, loadMoreRef, isLoading, isFetchingNextPage }: Props) => {
+  const breakpointColumns = {
+    default: 3,
+    1100: 2,
+    700: 1
+  };
 
   return (
     <div className="w-full">
-      <div ref={containerRef} className="w-full flex gap-2">
-        {columns.map((column, columnIndex) => (
-          <div key={columnIndex} className="flex-1 flex flex-col gap-2">
-            {column.map((item) => (
-              <div
-                key={item.id}
-                className="relative overflow-hidden rounded-lg bg-gray-100"
-                style={{
-                  aspectRatio: `${item.width}/${item.height}`,
-                }}>
-                {item.type === "image" ? (
-                  <img
-                    src={item.url}
-                    alt={item.alt || ""}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <video
-                    src={item.url}
-                    className="w-full h-full object-cover"
-                    preload="metadata"
-                    muted
-                  />
-                )}
-              </div>
-            ))}
+      <Masonry
+        breakpointCols={breakpointColumns}
+        className="flex gap-2"
+        columnClassName="flex flex-col gap-2"
+      >
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="relative overflow-hidden rounded-lg bg-gray-100"
+            style={{
+              aspectRatio: `${item.width}/${item.height}`,
+            }}>
+            {item.type === "image" ? (
+              <img
+                src={item.url}
+                alt={item.alt || ""}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <video
+                src={item.url}
+                className="w-full h-full object-cover"
+                preload="metadata"
+                muted
+              />
+            )}
           </div>
         ))}
-      </div>
+      </Masonry>
+      
       {/* 무한스크롤을 위한 sentinel 요소 */}
       <div 
-        ref={sentinelRef} 
-        className="w-full h-4 mt-4"
-        style={{ visibility: "hidden" }}
-      />
+        ref={loadMoreRef} 
+        className="w-full h-4 mt-4 flex items-center justify-center"
+      >
+        {isFetchingNextPage && (
+          <div className="text-gray-500 text-sm">더 많은 사진을 불러오는 중...</div>
+        )}
+      </div>
     </div>
   );
 };
